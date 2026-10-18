@@ -1,0 +1,20 @@
+
+{
+  "schemaVersion": 1,
+  "id": "riseofnations",
+  "version": "1.0.0",
+  "name": "Rise of Nations: AI Civilization",
+  "description": "Rise of Nations AI Civilization mod",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.riseofnations.RiseOfNations"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
