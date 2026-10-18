@@ -5,7 +5,6 @@ import com.mojang.brigadier.Command;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -66,7 +65,6 @@ public class RiseOfNations implements ModInitializer {
 
     private static int showStatus(ServerPlayer player) {
         String job = getJob(player);
-        int money = getMoney(player);
 
         player.sendSystemMessage(Component.literal(
             "=== RISE OF NATIONS ==="
@@ -78,37 +76,33 @@ public class RiseOfNations implements ModInitializer {
             "Profession: " + formatJob(job)
         ));
         player.sendSystemMessage(Component.literal(
-            "Money: " + money + " coins"
-        ));
-        player.sendSystemMessage(Component.literal(
-            "Use /ron work to earn money when you have a job."
+            "Money: " + getMoney(player) + " coins"
         ));
 
         return Command.SINGLE_SUCCESS;
     }
 
     private static int chooseJob(ServerPlayer player, String job) {
-        List<String> oldJobs = new ArrayList<>();
+        String currentJob = getJob(player);
 
-        for (String tag : player.getTags()) {
-            if (tag.startsWith("ron_job_")) {
-                oldJobs.add(tag);
-            }
-        }
-
-        for (String tag : oldJobs) {
-            player.removeTag(tag);
+        if (!currentJob.equals("citizen")) {
+            player.sendSystemMessage(Component.literal(
+                "Your profession is permanent! You are already a "
+                    + formatJob(currentJob) + ". You cannot change careers."
+            ));
+            return 0;
         }
 
         player.addTag("ron_job_" + job);
-        int money = getMoney(player);
 
         player.sendSystemMessage(Component.literal(
             "Career selected: " + formatJob(job) + "!"
         ));
         player.sendSystemMessage(Component.literal(
-            "Your life as a citizen has begun. Money: "
-                + money + " coins."
+            "Your profession is now permanent. Choose wisely!"
+        ));
+        player.sendSystemMessage(Component.literal(
+            "Starting money: " + getMoney(player) + " coins."
         ));
 
         return Command.SINGLE_SUCCESS;
@@ -124,15 +118,13 @@ public class RiseOfNations implements ModInitializer {
             return 0;
         }
 
-        int reward;
-
-        switch (job) {
-            case "farmer" -> reward = 10;
-            case "blacksmith" -> reward = 20;
-            case "merchant" -> reward = 15;
-            case "soldier" -> reward = 8;
-            default -> reward = 0;
-        }
+        int reward = switch (job) {
+            case "farmer" -> 10;
+            case "blacksmith" -> 20;
+            case "merchant" -> 15;
+            case "soldier" -> 8;
+            default -> 0;
+        };
 
         int total = getMoney(player) + reward;
         setMoney(player, total);
@@ -173,7 +165,7 @@ public class RiseOfNations implements ModInitializer {
                         tag.substring("ron_money_".length())
                     );
                 } catch (NumberFormatException ignored) {
-                    // Repair an invalid money tag below.
+                    // Invalid balance: reset it below.
                 }
             }
         }
