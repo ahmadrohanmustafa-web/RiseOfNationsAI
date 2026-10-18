@@ -19,39 +19,49 @@ public class CareerScreen extends Screen {
         int x = (this.width - buttonWidth) / 2;
         int y = (this.height - 130) / 2;
 
-        addRenderableWidget(
-            Button.builder(
-                Component.literal("Farmer - Earn 10 coins per work"),
-                button -> chooseCareer("farmer")
-            ).bounds(x, y, buttonWidth, buttonHeight).build()
-        );
+        if (Minecraft.getInstance().player != null) {
+            boolean hasJob = Minecraft.getInstance().player.getTags()
+                .stream()
+                .anyMatch(tag -> tag.startsWith("ron_job_"));
 
-        addRenderableWidget(
-            Button.builder(
-                Component.literal("Blacksmith - Earn 20 coins per work"),
-                button -> chooseCareer("blacksmith")
-            ).bounds(x, y + 30, buttonWidth, buttonHeight).build()
-        );
+            if (hasJob) {
+                addRenderableWidget(
+                    Button.builder(
+                        Component.literal("Your profession is permanent!"),
+                        button -> {}
+                    ).bounds(x, y, buttonWidth, buttonHeight).build()
+                );
 
-        addRenderableWidget(
-            Button.builder(
-                Component.literal("Merchant - Earn 15 coins per work"),
-                button -> chooseCareer("merchant")
-            ).bounds(x, y + 60, buttonWidth, buttonHeight).build()
-        );
+                addRenderableWidget(
+                    Button.builder(
+                        Component.literal("Close"),
+                        button -> Minecraft.getInstance().setScreen(null)
+                    ).bounds(x, y + 35, buttonWidth, buttonHeight).build()
+                );
 
-        addRenderableWidget(
-            Button.builder(
-                Component.literal("Soldier - Earn 8 coins per work"),
-                button -> chooseCareer("soldier")
-            ).bounds(x, y + 90, buttonWidth, buttonHeight).build()
-        );
+                return;
+            }
+        }
+
+        addCareerButton(x, y, "Farmer - Earn 10 coins", "farmer");
+        addCareerButton(x, y + 30, "Blacksmith - Earn 20 coins", "blacksmith");
+        addCareerButton(x, y + 60, "Merchant - Earn 15 coins", "merchant");
+        addCareerButton(x, y + 90, "Soldier - Earn 8 coins", "soldier");
 
         addRenderableWidget(
             Button.builder(
                 Component.literal("Close"),
                 button -> Minecraft.getInstance().setScreen(null)
             ).bounds(x, y + 120, buttonWidth, buttonHeight).build()
+        );
+    }
+
+    private void addCareerButton(int x, int y, String label, String career) {
+        addRenderableWidget(
+            Button.builder(
+                Component.literal(label),
+                button -> chooseCareer(career)
+            ).bounds(x, y, 240, 24).build()
         );
     }
 
