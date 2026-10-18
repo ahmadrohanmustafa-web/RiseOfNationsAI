@@ -4,11 +4,14 @@
   "id": "riseofnations",
   "version": "1.0.0",
   "name": "Rise of Nations: AI Civilization",
-  "description": "Rise of Nations AI Civilization mod",
+  "description": "Build your life, choose a career, and begin your rise to power.",
   "environment": "*",
   "entrypoints": {
     "main": [
       "com.riseofnations.RiseOfNations"
+    ],
+    "client": [
+      "com.riseofnations.RiseOfNationsClient"
     ]
   },
   "depends": {
