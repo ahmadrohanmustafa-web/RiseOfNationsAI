@@ -1,0 +1,21 @@
+
+{
+  "schemaVersion": 1,
+  "id": "riseofnations",
+  "version": "1.0.0",
+  "name": "Rise of Nations: AI Civilization",
+  "description": "Build a life as a citizen, choose a profession, and help your nation rise.",
+  "authors": ["RiseOfNations Team"],
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.riseofnations.RiseOfNations"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
