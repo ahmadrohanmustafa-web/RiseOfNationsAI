@@ -109,6 +109,7 @@ public class RiseOfNations implements ModInitializer {
         }
         player.addTag("ron_faction_" + faction);
         player.addTag("ron_story_region_chosen");
+        RegionWorldService.prepareAndTeleport(player, faction);
         player.sendSystemMessage(Component.literal("CHAPTER 1 — THE OATH"));
         player.sendSystemMessage(Component.literal("You have entered " + displayName(faction) + ". Your new life begins here."));
         player.sendSystemMessage(Component.literal("OBJECTIVE: Find the Job Center and choose a profession."));
