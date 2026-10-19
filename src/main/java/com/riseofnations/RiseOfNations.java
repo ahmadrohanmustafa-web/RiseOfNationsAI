@@ -8,6 +8,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -52,9 +53,10 @@ public class RiseOfNations implements ModInitializer {
                             .then(Commands.argument("name", StringArgumentType.greedyString())
                                 .executes(context -> foundKingdom(
                                     context.getSource().getPlayerOrException(),
-                                    StringArgumentType.getString(context, "name")))))
+                                    StringArgumentType.getString(context, "name"),
+                                    context.getSource().getServer()))))
                         .then(Commands.literal("status")
-                            .executes(context -> kingdomStatus(context.getSource().getPlayerOrException())))
+                            .executes(context -> kingdomStatus(context.getSource().getPlayerOrException(), context.getSource().getServer())))
                         .then(Commands.literal("invite")
                             .then(Commands.argument("player", EntityArgument.player())
                                 .executes(context -> invitePlayer(
@@ -152,7 +154,7 @@ public class RiseOfNations implements ModInitializer {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int foundKingdom(ServerPlayer player, String requestedName) {
+    private static int foundKingdom(ServerPlayer player, String requestedName, MinecraftServer server) {
         if (getKingdomSlug(player) != null) {
             player.sendSystemMessage(Component.literal("You already belong to a kingdom. Leave it before founding another."));
             return 0;
@@ -168,7 +170,7 @@ public class RiseOfNations implements ModInitializer {
             ));
             return 0;
         }
-        for (ServerPlayer online : player.serverLevel().getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer online : server.getPlayerList().getPlayers()) {
             if (slug.equals(getKingdomSlug(online))) {
                 player.sendSystemMessage(Component.literal("A kingdom with that name already exists."));
                 return 0;
@@ -184,7 +186,7 @@ public class RiseOfNations implements ModInitializer {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int kingdomStatus(ServerPlayer player) {
+    private static int kingdomStatus(ServerPlayer player, MinecraftServer server) {
         String slug = getKingdomSlug(player);
         if (slug == null) {
             player.sendSystemMessage(Component.literal("You are not in a kingdom. Found one with /ron kingdom found <name> (500 coins)."));
