@@ -3,8 +3,8 @@
   "schemaVersion": 1,
   "id": "riseofnations",
   "version": "1.0.0",
-  "name": "Rise of Nations: AI Civilization",
-  "description": "Build your life, choose a career, and begin your rise to power.",
+  "name": "Kit PvP Arena",
+  "description": "Six PvP kits, instant keyboard switching, and a live opponent HUD.",
   "environment": "*",
   "entrypoints": {
     "main": [
