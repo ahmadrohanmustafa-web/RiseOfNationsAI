@@ -29,7 +29,7 @@ public class RiseOfNations implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayer player = handler.player;
             if (getFactionSlug(player) == null) {
-                player.sendSystemMessage(Component.literal("Welcome to Rise of Nations. Choose your starting region on the map screen."));
+                player.sendSystemMessage(Component.literal("Welcome to Kit PvP Arena! Press K to open kits, or F6-F11 to equip a kit instantly."));
             }
         });
 
