@@ -38,7 +38,9 @@ public class RegionSelectionScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+        // Draw a plain background instead of Screen.renderBackground: the latter
+        // triggers Minecraft's blur pipeline, which can already have run this frame.
+        graphics.fill(0, 0, this.width, this.height, 0xFF202A35);
         int center = this.width / 2;
         graphics.fill(center - 180, 22, center + 180, this.height - 20, 0xE91B202B);
         graphics.fill(center - 176, 26, center + 176, this.height - 24, 0xE9D8C49A);
