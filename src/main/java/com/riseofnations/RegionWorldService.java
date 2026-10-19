@@ -12,13 +12,13 @@ public final class RegionWorldService {
     private RegionWorldService() {}
 
     public static void prepareAndTeleport(ServerPlayer player, String region) {
-        ServerLevel level = player.serverLevel();
+        ServerLevel level = (ServerLevel) player.level();
         Region regionData = Region.forName(region);
         if (regionData == null) return;
 
         buildRegionIfNeeded(level, regionData);
         player.teleportTo(level, regionData.x + 0.5, 102.0, regionData.z + 0.5,
-            java.util.Set.of(), player.getYRot(), player.getXRot());
+            java.util.Set.of(), player.getYRot(), player.getXRot(), true);
         player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
             "You have arrived in " + regionData.displayName + ". Find the Job Center, then visit the historical market."));
     }
