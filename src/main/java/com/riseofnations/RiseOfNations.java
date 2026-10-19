@@ -25,6 +25,7 @@ public class RiseOfNations implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        KitPvPService.register();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayer player = handler.player;
             if (getFactionSlug(player) == null) {
