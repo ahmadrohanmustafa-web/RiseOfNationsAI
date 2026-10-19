@@ -4,7 +4,6 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -18,7 +17,6 @@ import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class RiseOfNations implements ModInitializer {
 
@@ -28,47 +26,9 @@ public class RiseOfNations implements ModInitializer {
     public void onInitialize() {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayer player = handler.player;
-            if (!player.getTags().contains("ron_story_complete")) {
-                player.addTag("ron_story_pending_kingdom");
-                sendKingdomStoryPrompt(player);
+            if (getFactionSlug(player) == null) {
+                player.sendSystemMessage(Component.literal("Welcome to Rise of Nations. Choose your starting region on the map screen."));
             }
-        });
-
-        ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, params) -> {
-            String text = message.signedContent().trim().toLowerCase(Locale.ROOT);
-            if (sender.getTags().contains("ron_story_pending_kingdom")) {
-                String faction = switch (text) {
-                    case "1", "northreach" -> "northreach";
-                    case "2", "sunvale" -> "sunvale";
-                    case "3", "ironhold" -> "ironhold";
-                    case "4", "stormhaven" -> "stormhaven";
-                    default -> null;
-                };
-                if (faction != null) {
-                    sender.removeTag("ron_story_pending_kingdom");
-                    sender.addTag("ron_faction_" + faction);
-                    sender.addTag("ron_story_pending_job");
-                    sender.sendSystemMessage(Component.literal("THE CHRONICLES BEGIN — You have sworn loyalty to " + displayName(faction) + "."));
-                    sendJobStoryPrompt(sender);
-                    return false;
-                }
-            } else if (sender.getTags().contains("ron_story_pending_job")) {
-                String job = switch (text) {
-                    case "1", "farmer" -> "farmer";
-                    case "2", "blacksmith" -> "blacksmith";
-                    case "3", "merchant" -> "merchant";
-                    case "4", "soldier" -> "soldier";
-                    default -> null;
-                };
-                if (job != null) {
-                    sender.removeTag("ron_story_pending_job");
-                    sender.addTag("ron_story_complete");
-                    chooseJob(sender, job);
-                    sender.sendSystemMessage(Component.literal("STORY CHAPTER 1: A New Life — Your journey has begun. Type /ron status whenever you want to check your progress."));
-                    return false;
-                }
-            }
-            return true;
         });
 
         CommandRegistrationCallback.EVENT.register(
@@ -77,6 +37,11 @@ public class RiseOfNations implements ModInitializer {
                     .executes(context -> showStatus(context.getSource().getPlayerOrException()))
                     .then(Commands.literal("status")
                         .executes(context -> showStatus(context.getSource().getPlayerOrException())))
+                    .then(Commands.literal("region")
+                        .then(Commands.argument("name", StringArgumentType.word())
+                            .executes(context -> chooseFaction(
+                                context.getSource().getPlayerOrException(),
+                                StringArgumentType.getString(context, "name")))))
                     .then(Commands.literal("job")
                         .then(Commands.literal("farmer")
                             .executes(context -> chooseJob(context.getSource().getPlayerOrException(), "farmer")))
@@ -130,25 +95,24 @@ public class RiseOfNations implements ModInitializer {
         );
     }
 
-    private static void sendKingdomStoryPrompt(ServerPlayer player) {
-        player.sendSystemMessage(Component.literal("§6§lRISE OF NATIONS: THE CHRONICLES"));
-        player.sendSystemMessage(Component.literal("§eChapter 1 — The Oath"));
-        player.sendSystemMessage(Component.literal("You arrive in a divided land. Your first choice will shape your story."));
-        player.sendSystemMessage(Component.literal("Type one choice in chat — no menu, buttons, or command needed:"));
-        player.sendSystemMessage(Component.literal("§b1 / northreach §7— cold highlands, proud defenders"));
-        player.sendSystemMessage(Component.literal("§a2 / sunvale §7— fertile fields and busy markets"));
-        player.sendSystemMessage(Component.literal("§c3 / ironhold §7— mountains, smiths, and strong walls"));
-        player.sendSystemMessage(Component.literal("§d4 / stormhaven §7— sea traders and daring sailors"));
-    }
-
-    private static void sendJobStoryPrompt(ServerPlayer player) {
-        player.sendSystemMessage(Component.literal("§6Chapter 2 — Choose Your Calling"));
-        player.sendSystemMessage(Component.literal("Your nation needs people with skills. Type a choice in chat:"));
-        player.sendSystemMessage(Component.literal("§a1 / farmer §7— earn 10 coins per work"));
-        player.sendSystemMessage(Component.literal("§f2 / blacksmith §7— earn 20 coins per work"));
-        player.sendSystemMessage(Component.literal("§e3 / merchant §7— earn 15 coins per work"));
-        player.sendSystemMessage(Component.literal("§c4 / soldier §7— earn 8 coins per work"));
-        player.sendSystemMessage(Component.literal("Your profession is permanent, so choose carefully."));
+    private static int chooseFaction(ServerPlayer player, String requestedFaction) {
+        String faction = requestedFaction.toLowerCase(java.util.Locale.ROOT);
+        if (!List.of("northreach", "sunvale", "ironhold", "stormhaven").contains(faction)) {
+            player.sendSystemMessage(Component.literal("That region is not available."));
+            return 0;
+        }
+        String current = getFactionSlug(player);
+        if (current != null) {
+            player.sendSystemMessage(Component.literal("Your starting region is already " + displayName(current) + ". Your choice is permanent."));
+            return 0;
+        }
+        player.addTag("ron_faction_" + faction);
+        player.addTag("ron_story_region_chosen");
+        player.sendSystemMessage(Component.literal("CHAPTER 1 — THE OATH"));
+        player.sendSystemMessage(Component.literal("You have entered " + displayName(faction) + ". Your new life begins here."));
+        player.sendSystemMessage(Component.literal("OBJECTIVE: Find the Job Center and choose a profession."));
+        player.sendSystemMessage(Component.literal("Next: visit the village market to buy supplies and meet the townspeople."));
+        return Command.SINGLE_SUCCESS;
     }
 
     private static int showStatus(ServerPlayer player) {
@@ -158,7 +122,7 @@ public class RiseOfNations implements ModInitializer {
         player.sendSystemMessage(Component.literal("Money: " + getMoney(player) + " coins"));
         player.sendSystemMessage(Component.literal("Kingdom: " + getKingdomName(player)));
         player.sendSystemMessage(Component.literal("Nation: " + getFactionName(player)));
-        player.sendSystemMessage(Component.literal("Press O for careers and P for the shop."));
+        player.sendSystemMessage(Component.literal("Visit the Job Center to choose a profession. Press P for the current test shop."));
         player.sendSystemMessage(Component.literal("Commands: /ron work, /ron kingdom status"));
         return Command.SINGLE_SUCCESS;
     }
@@ -182,7 +146,7 @@ public class RiseOfNations implements ModInitializer {
     private static int work(ServerPlayer player) {
         String job = getJob(player);
         if (job.equals("citizen")) {
-            player.sendSystemMessage(Component.literal("Choose a profession before working. Press O to open careers."));
+            player.sendSystemMessage(Component.literal("Choose a profession at the Job Center before working."));
             return 0;
         }
 
@@ -422,13 +386,16 @@ public class RiseOfNations implements ModInitializer {
         return null;
     }
 
-    private static String getFactionName(ServerPlayer player) {
+    private static String getFactionSlug(ServerPlayer player) {
         for (String tag : player.getTags()) {
-            if (tag.startsWith("ron_faction_")) {
-                return displayName(tag.substring("ron_faction_".length()));
-            }
+            if (tag.startsWith("ron_faction_")) return tag.substring("ron_faction_".length());
         }
-        return "Unchosen";
+        return null;
+    }
+
+    private static String getFactionName(ServerPlayer player) {
+        String faction = getFactionSlug(player);
+        return faction == null ? "Unchosen" : displayName(faction);
     }
 
     private static String getKingdomName(ServerPlayer player) {
