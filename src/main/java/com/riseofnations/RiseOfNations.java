@@ -168,7 +168,7 @@ public class RiseOfNations implements ModInitializer {
             ));
             return 0;
         }
-        for (ServerPlayer online : player.getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer online : player.serverLevel().getServer().getPlayerList().getPlayers()) {
             if (slug.equals(getKingdomSlug(online))) {
                 player.sendSystemMessage(Component.literal("A kingdom with that name already exists."));
                 return 0;
@@ -196,7 +196,7 @@ public class RiseOfNations implements ModInitializer {
         player.sendSystemMessage(Component.literal("Your rank: " + (player.getTags().contains("ron_rank_king") ? "King/Queen" : "Citizen")));
         int members = 0;
         int wars = 0;
-        for (ServerPlayer online : player.getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer online : player.serverLevel().getServer().getPlayerList().getPlayers()) {
             if (slug.equals(getKingdomSlug(online))) members++;
         }
         for (String tag : player.getTags()) {
