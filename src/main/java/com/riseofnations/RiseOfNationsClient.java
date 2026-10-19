@@ -3,6 +3,7 @@ package com.riseofnations;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -14,6 +15,10 @@ public class RiseOfNationsClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            client.execute(() -> client.setScreen(new RegionSelectionScreen()));
+        });
+
         openShopMenu = KeyBindingHelper.registerKeyBinding(
             new KeyMapping(
                 "key.riseofnations.open_shop_menu",
