@@ -198,7 +198,7 @@ public class RiseOfNations implements ModInitializer {
         player.sendSystemMessage(Component.literal("Your rank: " + (player.getTags().contains("ron_rank_king") ? "King/Queen" : "Citizen")));
         int members = 0;
         int wars = 0;
-        for (ServerPlayer online : player.serverLevel().getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer online : server.getPlayerList().getPlayers()) {
             if (slug.equals(getKingdomSlug(online))) members++;
         }
         for (String tag : player.getTags()) {
