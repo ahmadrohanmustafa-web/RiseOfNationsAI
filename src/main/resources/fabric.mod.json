@@ -3,8 +3,8 @@
   "schemaVersion": 1,
   "id": "riseofnations",
   "version": "1.0.0",
-  "name": "Kit PvP Arena",
-  "description": "Six PvP kits, instant keyboard switching, and a live opponent HUD.",
+  "name": "Rise of Nations: AI Civilization",
+  "description": "A story-driven civilization campaign with 50 nations, professions, a royal progression, and conquest.",
   "environment": "*",
   "entrypoints": {
     "main": [
