@@ -26,10 +26,11 @@ public class RiseOfNations implements ModInitializer {
     @Override
     public void onInitialize() {
         KitPvPService.register();
+        CivilizationService.register();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayer player = handler.player;
             if (getFactionSlug(player) == null) {
-                player.sendSystemMessage(Component.literal("Welcome to Kit PvP Arena! Press K to open kits, or F6-F11 to equip a kit instantly."));
+                player.sendSystemMessage(Component.literal("Welcome to Rise of Nations: AI Civilization! Use /ron nations to choose from 50 nations, then /ron story to begin your rise."));
             }
         });
 
