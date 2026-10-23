@@ -2,6 +2,7 @@ package com.riseofnations;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -12,6 +13,9 @@ import net.minecraft.core.BlockPos;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * First playable civilization layer for Rise of Nations.
@@ -20,6 +24,9 @@ import java.util.Locale;
  */
 public final class CivilizationService {
     private CivilizationService() {}
+
+    private static long tickCounter = 0;
+    private static final Map<UUID, Long> LAST_AUTOCONQUEST_TICK = new HashMap<>();
 
     private record Nation(String id, String name, String motto, String terrain, int x, int z) {}
 
@@ -82,6 +89,10 @@ public final class CivilizationService {
     }
 
     public static void register() {
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            if (++tickCounter % 20 != 0) return;
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) tickStoryProgress(player);
+        });
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
             dispatcher.register(Commands.literal("ron")
                 .then(Commands.literal("nations").executes(ctx -> listNations(ctx.getSource().getPlayerOrException())))
@@ -152,7 +163,7 @@ public final class CivilizationService {
         player.sendSystemMessage(Component.literal("Welcome to " + nation.name() + ": " + nation.motto() + "."));
         player.sendSystemMessage(Component.literal("You begin as an ordinary citizen with 100 coins. No title, no army, no land."));
         player.sendSystemMessage(Component.literal("OBJECTIVE: Choose a profession with /ron job farmer|blacksmith|merchant|soldier."));
-        player.sendSystemMessage(Component.literal("Use /ron story for your quest and /ron work to earn coins."));
+        player.sendSystemMessage(Component.literal("Your story advances automatically as you work and earn money. Use /ron story only to check your chapter."));
         return 1;
     }
 
@@ -219,14 +230,68 @@ public final class CivilizationService {
         player.sendSystemMessage(Component.literal("Your rank: " + (has(player,"ron_world_king") ? "Sovereign of the Known World" : has(player,"ron_king_" + country) ? "King of " + nation.name() : stage>=4 ? "Noble / Influential Citizen" : "Ordinary Citizen")));
         switch(stage) {
             case 1 -> player.sendSystemMessage(Component.literal("CHAPTER I: Find your place in society. Choose a profession with /ron job farmer, blacksmith, merchant, or soldier."));
-            case 2 -> player.sendSystemMessage(Component.literal("CHAPTER II: Build your fortune. Earn at least 250 coins through /ron work, then use /ron advance."));
-            case 3 -> player.sendSystemMessage(Component.literal("CHAPTER III: Become a power in the realm. Reach 1,000 coins, then use /ron advance."));
-            case 4 -> player.sendSystemMessage(Component.literal("CHAPTER IV: Claim your crown with /ron crown. A crown is earned, not given."));
-            case 5 -> player.sendSystemMessage(Component.literal("CHAPTER V: Expand your ambition. Declare war on another country with /ron war <id>, then /ron conquer <id> (cost: 1,500 coins)."));
+            case 2 -> player.sendSystemMessage(Component.literal("CHAPTER II: Build your fortune. Earn at least 250 coins through your profession; the story advances automatically."));
+            case 3 -> player.sendSystemMessage(Component.literal("CHAPTER III: Become a power in the realm. Reach 1,000 coins; the story advances automatically."));
+            case 4 -> player.sendSystemMessage(Component.literal("CHAPTER IV: Build your savings to 2,000 coins. Your coronation happens automatically."));
+            case 5 -> player.sendSystemMessage(Component.literal("CHAPTER V: Expand your empire. Each 1,500 coins funds a campaign that resolves automatically about once per minute."));
             default -> player.sendSystemMessage(Component.literal("EPILOGUE: Your legacy is written. Use /ron empire to track your conquests."));
         }
         player.sendSystemMessage(Component.literal("Homeland: " + nation.name() + " | Coins: " + money(player) + " | Conquered nations: " + conqueredCount(player) + "/" + NATIONS.size()));
         return 1;
+    }
+
+
+    private static void tickStoryProgress(ServerPlayer player) {
+        String country = tagValue(player, "ron_country_");
+        if (country == null) return;
+        int stage = storyStage(player);
+        int balance = money(player);
+
+        if (stage == 1 && !"citizen".equals(job(player))) {
+            setStage(player, 2);
+            player.sendSystemMessage(Component.literal("CHAPTER II — YOUR WORKING LIFE BEGINS"));
+            player.sendSystemMessage(Component.literal("Your profession is recorded. Earn 250 coins to build your reputation; the story continues on its own."));
+            return;
+        }
+        if (stage == 2 && balance >= 250) {
+            setStage(player, 3);
+            player.sendSystemMessage(Component.literal("CHAPTER III — A NAME IN THE REALM"));
+            player.sendSystemMessage(Component.literal("Reach 1,000 coins and your rise to power continues automatically."));
+            return;
+        }
+        if (stage == 3 && balance >= 1000) {
+            setStage(player, 4);
+            player.sendSystemMessage(Component.literal("CHAPTER IV — THE THRONE AWAITS"));
+            player.sendSystemMessage(Component.literal("Save 2,000 coins for an automatic coronation."));
+            return;
+        }
+        if (stage == 4 && balance >= 2000 && !has(player, "ron_king_" + country)) {
+            setMoney(player, balance - 1000);
+            player.addTag("ron_king_" + country);
+            player.addTag("ron_war_unlocked");
+            setStage(player, 5);
+            player.sendSystemMessage(Component.literal("THE CORONATION — You are now ruler of " + find(country).name() + "!"));
+            player.sendSystemMessage(Component.literal("Your reign begins. Campaigns against other nations resolve automatically when your treasury can fund them."));
+            LAST_AUTOCONQUEST_TICK.put(player.getUUID(), tickCounter);
+            return;
+        }
+        if (stage >= 5 && !has(player, "ron_world_king") && balance >= 1500) {
+            long last = LAST_AUTOCONQUEST_TICK.getOrDefault(player.getUUID(), tickCounter);
+            if (tickCounter - last < 1200) return;
+            for (Nation target : NATIONS) {
+                if (target.id().equals(country) || has(player, "ron_conquered_" + target.id())) continue;
+                setMoney(player, money(player) - 1500);
+                player.addTag("ron_conquered_" + target.id());
+                LAST_AUTOCONQUEST_TICK.put(player.getUUID(), tickCounter);
+                int count = conqueredCount(player);
+                player.sendSystemMessage(Component.literal("ROYAL CAMPAIGN VICTORY — " + target.name() + " has joined your empire. " + count + "/49 foreign nations united."));
+                if (count >= NATIONS.size() - 1) {
+                    player.addTag("ron_world_king");
+                    player.sendSystemMessage(Component.literal("FINAL CHAPTER — You have united all 50 nations. You are the Sovereign of the Known World!"));
+                }
+                return;
+            }
+        }
     }
 
     private static int advanceStory(ServerPlayer player) {
