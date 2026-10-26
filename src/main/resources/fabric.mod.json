@@ -1,23 +1,25 @@
-
 {
   "schemaVersion": 1,
   "id": "riseofnations",
-  "version": "1.0.0",
+  "version": "${version}",
   "name": "Rise of Nations: AI Civilization",
-  "description": "A story-driven civilization campaign with 50 nations, professions, a royal progression, and conquest.",
+  "description": "A story-driven civilization campaign. Early development: found a civilization, manage it in a GUI, and keep it saved with your world. Nations, diplomacy and armies are planned.",
+  "authors": [
+    "ahmadrohanmustafa-web"
+  ],
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.riseofnations.RiseOfNations"
+      "com.riseofnations.RiseOfNationsMod"
     ],
     "client": [
-      "com.riseofnations.RiseOfNationsClient"
+      "com.riseofnations.client.RiseOfNationsClient"
     ]
   },
   "depends": {
-    "fabricloader": ">=0.18.4",
-    "minecraft": "~1.21.11",
-    "java": ">=21",
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
     "fabric-api": "*"
   }
 }
