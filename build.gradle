@@ -1,26 +1,58 @@
-
 plugins {
-    id 'fabric-loom' version '1.13-SNAPSHOT'
+    // Minecraft 26.x is not obfuscated, so we use the NON-remapping Loom plugin.
+    // That means: no "mappings" line and "implementation" (not "modImplementation").
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
-version = '1.0.0'
-group = 'com.riseofnations'
+version = project.mod_version
+group = project.maven_group
 
 base {
-    archivesName = 'riseofnations-ai'
+    archivesName = project.archives_base_name
 }
 
 repositories {
-    mavenCentral()
+    // Loom adds the Minecraft repositories automatically. Nothing else is needed yet.
 }
 
 dependencies {
-    minecraft 'com.mojang:minecraft:1.21.11'
-    mappings loom.officialMojangMappings()
-    modImplementation 'net.fabricmc:fabric-loader:0.18.4'
-    modImplementation 'net.fabricmc.fabric-api:fabric-api:0.141.1+1.21.11'
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+    filesMatching("fabric.mod.json") {
+        expand "version": inputs.properties.version
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 21
+    it.options.release = 25   // Minecraft 26.x requires Java 25
+    it.options.encoding = 'UTF-8'
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+// ---- Tests for the pure-Java game logic (economy, story, save format) ----
+// The classic "test" task is disabled because we run our own tiny runner (no extra downloads).
+tasks.named('test') {
+    enabled = false
+}
+
+tasks.register('coreTests', JavaExec) {
+    group = 'verification'
+    description = 'Runs the game-logic tests. Fails the build if any test fails.'
+    dependsOn 'testClasses'
+    classpath = sourceSets.test.output + sourceSets.main.output
+    mainClass = 'com.riseofnations.core.AllTests'
+}
+
+tasks.named('check') {
+    dependsOn 'coreTests'
 }
